@@ -4,3 +4,9 @@
 # user defined files
 .env
 docker-compose.override.yml
+
+# user defined files - ide
+.idea
+mongo_data/
+redis_data/
+sharelatex_data/
