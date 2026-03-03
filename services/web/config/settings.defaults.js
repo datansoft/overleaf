@@ -854,6 +854,25 @@ module.exports = {
     enabled: false,
   },
 
+  prepSso: {
+    enabled: process.env.PREP_SSO_ENABLED === 'true',
+    startUrl: process.env.PREP_SSO_START_URL,
+    issuer: process.env.PREP_SSO_ISSUER || 'prep.preppaper.com',
+    audience: process.env.PREP_SSO_AUDIENCE || 'latex.preppaper.com',
+    publicKey: process.env.PREP_SSO_PUBLIC_KEY,
+    syncUserDetailsOnLogin:
+      process.env.PREP_SSO_SYNC_USER_DETAILS_ON_LOGIN !== 'false',
+  },
+
+  oauthProviders:
+    process.env.PREP_SSO_ENABLED === 'true'
+      ? {
+          prep: {
+            name: 'Prep',
+          },
+        }
+      : {},
+
   compileBodySizeLimitMb: process.env.COMPILE_BODY_SIZE_LIMIT_MB || 7,
 
   textExtensions: defaultTextExtensions.concat(
@@ -1067,6 +1086,7 @@ module.exports = {
     'launchpad',
     'server-ce-scripts',
     'user-activate',
+    'prep-sso',
   ],
   viewIncludes: {},
 

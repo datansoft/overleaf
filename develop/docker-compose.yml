@@ -135,7 +135,7 @@ services:
   redis:
     image: redis:7
     ports:
-      - "127.0.0.1:6379:6379" # for debugging
+      - "127.0.0.1:6380:6379" # for debugging
     volumes:
       - redis-data:/data
 
@@ -146,6 +146,7 @@ services:
       target: dev
     env_file:
       - dev.env
+      - .env
     environment:
       - APP_NAME=Overleaf Community Edition
       - ENABLED_LINKED_FILE_TYPES=project_file,project_output_file
