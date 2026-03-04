@@ -21,12 +21,13 @@ services:
   clsi:
     build:
       context: ..
-      dockerfile: services/clsi/Dockerfile
+      dockerfile: develop/prep/clsi-texlive.Dockerfile
       target: with-texlive
     env_file:
       - dev.env
     environment:
       - SANDBOXED_COMPILES=false
+      - DOWNLOAD_HOST=http://clsi-nginx:8080  # 로컬 clsi 반영
     user: root
     volumes:
       - ${PWD}/compiles:/overleaf/services/clsi/compiles
@@ -74,10 +75,15 @@ services:
       - dev.env
     #    environment:
     #      - ENABLE_CONVERSIONS=true
+    environment:
+      OVERLEAF_EDITOR_BLOBS_BUCKET: "/buckets/blobs"
+      OVERLEAF_EDITOR_PROJECT_BLOBS_BUCKET: "/buckets/project_blobs"
+      PERSISTOR_BACKEND: fs
     volumes:
       - filestore-public-files:/overleaf/services/filestore/public_files
       - filestore-template-files:/overleaf/services/filestore/template_files
       - filestore-uploads:/overleaf/services/filestore/uploads
+      - history-v1-buckets:/buckets:ro
 
   history-v1:
     build:
@@ -86,6 +92,7 @@ services:
     env_file:
       - dev.env
     environment:
+      NODE_CONFIG: '{"persistor":{"useSubdirectories":true}}'
       OVERLEAF_EDITOR_ANALYTICS_BUCKET: "/buckets/analytics"
       OVERLEAF_EDITOR_BLOBS_BUCKET: "/buckets/blobs"
       OVERLEAF_EDITOR_CHUNKS_BUCKET: "/buckets/chunks"
