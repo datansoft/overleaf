@@ -28,17 +28,25 @@ COPY services/clsi/ /overleaf/services/clsi/
 
 FROM ${OVERLEAF_BASE_TAG}
 
-WORKDIR /overleaf/services/clsi
-
-COPY --from=app /overleaf /overleaf
-COPY server-ce/config/latexmkrc /tmp/LatexMk
+ARG TEXLIVE_MIRROR=https://mirror.ox.ac.uk/sites/ctan.org/systems/texlive/tlnet
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
- && apt-get install -y ghostscript chktex \
- && mkdir -p /usr/local/share/latexmk cache compiles output \
- && mv /tmp/LatexMk /usr/local/share/latexmk/LatexMk
+ && apt-get install -y ghostscript chktex fonts-noto-cjk \
+ && tlmgr option repository "${TEXLIVE_MIRROR}" \
+ && tlmgr install --repository "${TEXLIVE_MIRROR}" \
+      cjk-ko \
+      xetexko \
+      collection-langcjk \
+ && mkdir -p /usr/local/share/latexmk
+
+WORKDIR /overleaf/services/clsi
+
+COPY --from=app /overleaf /overleaf
+COPY server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
+
+RUN mkdir -p cache compiles output
 
 EXPOSE 3013
 
