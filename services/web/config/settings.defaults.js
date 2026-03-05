@@ -863,6 +863,13 @@ module.exports = {
     syncUserDetailsOnLogin:
       process.env.PREP_SSO_SYNC_USER_DETAILS_ON_LOGIN !== 'false',
   },
+  prepExt: {
+    enabled: process.env.PREP_SSO_ENABLED === 'true',
+    issuer:process.env.PREP_SSO_ISSUER || 'prep.preppaper.com',
+    audience: process.env.PREP_SSO_AUDIENCE || 'latex.preppaper.com',
+    publicKey: process.env.PREP_SSO_PUBLIC_KEY,
+    apiToken: process.env.PREP_EXT_API_TOKEN,
+  },
 
   oauthProviders:
     process.env.PREP_SSO_ENABLED === 'true'
@@ -1087,6 +1094,7 @@ module.exports = {
     'server-ce-scripts',
     'user-activate',
     'prep-sso',
+    'prep-ext',
   ],
   viewIncludes: {},
 
