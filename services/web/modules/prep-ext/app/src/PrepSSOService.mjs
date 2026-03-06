@@ -22,16 +22,16 @@ class PrepSSOError extends Error {
 let publicKeyPromise
 
 function getPrepSSOConfig() {
-  if (!Settings.prepSso?.enabled) {
+  if (!Settings.prepExt?.enabled) {
     throw new PrepSSOError('Prep SSO is disabled', 404)
   }
-  if (!Settings.prepSso.startUrl) {
+  if (!Settings.prepExt.startUrl) {
     throw new PrepSSOError('Prep SSO start URL is not configured', 500)
   }
-  if (!Settings.prepSso.publicKey) {
+  if (!Settings.prepExt.publicKey) {
     throw new PrepSSOError('Prep SSO public key is not configured', 500)
   }
-  return Settings.prepSso
+  return Settings.prepExt
 }
 
 async function getPublicKey() {
@@ -99,10 +99,6 @@ async function consumeBridgeToken(token) {
 }
 
 async function syncUserDetails(user, identity) {
-  if (!Settings.prepSso?.syncUserDetailsOnLogin) {
-    return user
-  }
-
   const updates = {}
   if (identity.firstName && identity.firstName !== user.first_name) {
     updates.first_name = identity.firstName

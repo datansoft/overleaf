@@ -101,8 +101,6 @@ async function verifyToken(token) {
           claim: error?.claim,
           reason: error?.reason,
         },
-        expectedIssuer: prep.issuer,
-        expectedAudience: prep.audience,
       },
       'Prep token verify failed'
     )
