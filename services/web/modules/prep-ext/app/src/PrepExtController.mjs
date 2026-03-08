@@ -41,7 +41,23 @@ async function createManuscriptProject(req, res, next) {
   }
 }
 
+async function deleteManuscriptProject(req, res, next) {
+  try {
+    const projectId =
+      typeof req.params?.project_id === 'string' ? req.params.project_id : null
+    await PrepExtService.promises.deleteProjectById(projectId)
+    return res.sendStatus(200)
+  } catch (error) {
+    if (error instanceof PrepExtError) {
+      logger.warn({ err: error }, 'Prep Ext manuscript request rejected')
+      return res.status(error.statusCode).send(error.message)
+    }
+    return next(error)
+  }
+}
+
 export default {
   requirePrepExtApiToken,
   createManuscriptProject: expressify(createManuscriptProject),
+  deleteManuscriptProject: expressify(deleteManuscriptProject),
 }

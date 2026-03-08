@@ -6,7 +6,9 @@ import EmailHelper from '../../../../app/src/Features/Helpers/EmailHelper.mjs'
 import UserGetter from '../../../../app/src/Features/User/UserGetter.mjs'
 import ProjectCreationHandler from '../../../../app/src/Features/Project/ProjectCreationHandler.mjs'
 import ProjectEntityUpdateHandler from '../../../../app/src/Features/Project/ProjectEntityUpdateHandler.mjs'
+import ProjectDeleter from '../../../../app/src/Features/Project/ProjectDeleter.mjs'
 import Errors from '../../../../app/src/Features/Errors/Errors.js'
+import { ObjectId } from 'mongodb'
 
 const replayClient = RedisWrapper.client('web')
 
@@ -181,8 +183,27 @@ async function createProjectFromToken(token) {
   return await createProjectFromClaims(claims)
 }
 
+async function deleteProjectById(projectId) {
+  if (!projectId || typeof projectId !== 'string') {
+    throw new PrepExtError('project_id is required', 400)
+  }
+  if (!ObjectId.isValid(projectId)) {
+    throw new PrepExtError('Invalid project_id', 400)
+  }
+
+  try {
+    await ProjectDeleter.promises.deleteProject(projectId)
+  } catch (error) {
+    if (error instanceof Errors.NotFoundError) {
+      throw new PrepExtError('project not found', 404)
+    }
+    throw error
+  }
+}
+
 const PrepExtService = {
   createProjectFromToken,
+  deleteProjectById,
 }
 
 export { PrepExtError }

@@ -15,5 +15,10 @@ export default {
       PrepExtController.requirePrepExtApiToken,
       PrepExtController.createManuscriptProject
     )
+    privateApiRouter.delete(
+      '/prep/manuscript/:project_id',
+      PrepExtController.requirePrepExtApiToken,
+      PrepExtController.deleteManuscriptProject
+    )
   },
 }
