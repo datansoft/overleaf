@@ -94,6 +94,23 @@ async function setDocument(req, res) {
     'finished receiving set document request from api (docupdater)'
   )
 
+  void Modules.promises.hooks
+    .fire('prepExtEvent', {
+      type: 'entity_saved',
+      projectId,
+      entityType: 'doc',
+      entityId: docId,
+      source: 'docupdater',
+      userId: lastUpdatedBy,
+      timestamp: Date.now(),
+    })
+    .catch(err => {
+      logger.warn(
+        { err, projectId, docId },
+        'failed to fire prepExtEvent hook from setDocument'
+      )
+    })
+
   await Modules.promises.hooks.fire(
     'docModified',
     projectId,

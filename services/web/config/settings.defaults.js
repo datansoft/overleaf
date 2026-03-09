@@ -860,6 +860,7 @@ module.exports = {
     issuer: process.env.PREP_JWT_ISSUER || 'prep.preppaper.com',
     audience: process.env.PREP_JWT_AUDIENCE || 'latex.preppaper.com',
     publicKey: process.env.PREP_JWT_PUBLIC_KEY,
+    apiUrl: process.env.PREP_API_URL,
     apiToken: process.env.PREP_API_TOKEN,
   },
 

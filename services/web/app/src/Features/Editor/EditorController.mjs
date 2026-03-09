@@ -9,6 +9,16 @@ import EditorRealTimeController from './EditorRealTimeController.mjs'
 import async from 'async'
 import PublicAccessLevels from '../Authorization/PublicAccessLevels.mjs'
 import { promisify, promisifyMultiResult } from '@overleaf/promise-utils'
+import Modules from '../../infrastructure/Modules.mjs'
+
+function firePrepExtEvent(event) {
+  void Modules.promises.hooks.fire('prepExtEvent', {
+    ...event,
+    timestamp: Date.now(),
+  }).catch(err => {
+    logger.warn({ err, event }, 'failed to fire prepExtEvent hook')
+  })
+}
 
 const EditorController = {
   addDoc(projectId, folderId, docName, docLines, source, userId, callback) {
@@ -60,6 +70,14 @@ const EditorController = {
           source,
           userId
         )
+        firePrepExtEvent({
+          type: 'entity_created',
+          projectId,
+          entityType: 'doc',
+          entityId: doc?._id?.toString?.() ?? doc?._id,
+          source,
+          userId,
+        })
         callback(err, doc)
       }
     )
@@ -103,6 +121,14 @@ const EditorController = {
           linkedFileData,
           userId
         )
+        firePrepExtEvent({
+          type: 'entity_created',
+          projectId,
+          entityType: 'file',
+          entityId: fileRef?._id?.toString?.() ?? fileRef?._id,
+          source,
+          userId,
+        })
         callback(err, fileRef)
       }
     )
@@ -146,6 +172,14 @@ const EditorController = {
             source,
             userId
           )
+          firePrepExtEvent({
+            type: 'entity_created',
+            projectId,
+            entityType: 'doc',
+            entityId: doc?._id?.toString?.() ?? doc?._id,
+            source,
+            userId,
+          })
         }
         callback(err, doc)
       }
@@ -182,6 +216,15 @@ const EditorController = {
             existingFile._id,
             source
           )
+        } else {
+          firePrepExtEvent({
+            type: 'entity_created',
+            projectId,
+            entityType: 'file',
+            entityId: newFile?._id?.toString?.() ?? newFile?._id,
+            source,
+            userId,
+          })
         }
         // now add the new file on the client
         EditorRealTimeController.emitToRoom(
@@ -232,6 +275,14 @@ const EditorController = {
                 source,
                 userId
               )
+              firePrepExtEvent({
+                type: 'entity_created',
+                projectId,
+                entityType: 'doc',
+                entityId: doc?._id?.toString?.() ?? doc?._id,
+                source,
+                userId,
+              })
             }
             callback(null, { doc, folder: lastFolder })
           }
@@ -282,6 +333,15 @@ const EditorController = {
                 existingFile._id,
                 source
               )
+            } else {
+              firePrepExtEvent({
+                type: 'entity_created',
+                projectId,
+                entityType: 'file',
+                entityId: newFile?._id?.toString?.() ?? newFile?._id,
+                source,
+                userId,
+              })
             }
             // now add the new file on the client
             EditorRealTimeController.emitToRoom(
@@ -390,6 +450,16 @@ const EditorController = {
           entityId,
           source
         )
+        if (entityType === 'doc' || entityType === 'file') {
+          firePrepExtEvent({
+            type: 'entity_deleted',
+            projectId,
+            entityType,
+            entityId,
+            source,
+            userId,
+          })
+        }
         callback()
       }
     )
@@ -539,6 +609,13 @@ const EditorController = {
         'projectNameUpdated',
         newName
       )
+      firePrepExtEvent({
+        type: 'project_renamed',
+        projectId,
+        entityType: 'project',
+        entityId: projectId,
+        name: newName,
+      })
       callback()
     })
   },

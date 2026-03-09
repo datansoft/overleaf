@@ -7,7 +7,11 @@ import UserGetter from '../../../../app/src/Features/User/UserGetter.mjs'
 import ProjectCreationHandler from '../../../../app/src/Features/Project/ProjectCreationHandler.mjs'
 import ProjectEntityUpdateHandler from '../../../../app/src/Features/Project/ProjectEntityUpdateHandler.mjs'
 import ProjectDeleter from '../../../../app/src/Features/Project/ProjectDeleter.mjs'
+import ProjectGetter from '../../../../app/src/Features/Project/ProjectGetter.mjs'
+import ProjectEntityHandler from '../../../../app/src/Features/Project/ProjectEntityHandler.mjs'
+import HistoryManager from '../../../../app/src/Features/History/HistoryManager.mjs'
 import Errors from '../../../../app/src/Features/Errors/Errors.js'
+import { promiseMapWithLimit } from '@overleaf/promise-utils'
 import { ObjectId } from 'mongodb'
 
 const replayClient = RedisWrapper.client('web')
@@ -201,9 +205,94 @@ async function deleteProjectById(projectId) {
   }
 }
 
+function getValidProjectId(projectId) {
+  if (!projectId || typeof projectId !== 'string') {
+    throw new PrepExtError('project_id is required', 400)
+  }
+  if (!ObjectId.isValid(projectId)) {
+    throw new PrepExtError('Invalid project_id', 400)
+  }
+  return projectId
+}
+
+function getDocByteLength(lines) {
+  if (!Array.isArray(lines)) {
+    return 0
+  }
+  return Buffer.byteLength(lines.join('\n'), 'utf8')
+}
+
+async function getFileRefSizeByHash(projectId, hash) {
+  if (!hash || typeof hash !== 'string') {
+    return 0
+  }
+
+  const { contentLength } = await HistoryManager.promises.requestBlobWithProjectId(
+    projectId,
+    hash,
+    'HEAD'
+  )
+
+  return Number.isFinite(contentLength) ? contentLength : 0
+}
+
+async function getManuscriptProjectById(projectId) {
+  projectId = getValidProjectId(projectId)
+
+  const project = await ProjectGetter.promises.getProject(projectId, {
+    name: 1,
+    rootFolder: 1,
+    'overleaf.history.id': 1,
+  })
+
+  if (!project) {
+    throw new PrepExtError('project not found', 404)
+  }
+
+  const { docs, files } = ProjectEntityHandler.getAllEntitiesFromProject(project)
+
+  const docSizes = await promiseMapWithLimit(5, docs, async ({ doc }) => {
+    try {
+      const { lines } = await ProjectEntityHandler.promises.getDoc(
+        projectId,
+        doc._id
+      )
+      return getDocByteLength(lines)
+    } catch (error) {
+      if (error instanceof Errors.NotFoundError) {
+        return 0
+      }
+      throw error
+    }
+  })
+
+  const fileSizes = await promiseMapWithLimit(5, files, async ({ file }) => {
+    try {
+      return await getFileRefSizeByHash(projectId, file.hash)
+    } catch (error) {
+      if (error instanceof Errors.NotFoundError) {
+        return 0
+      }
+      throw error
+    }
+  })
+
+  const totalFileSize = [...docSizes, ...fileSizes].reduce(
+    (sum, size) => sum + size,
+    0
+  )
+
+  return {
+    project_id: projectId,
+    name: project.name,
+    total_file_size: totalFileSize,
+  }
+}
+
 const PrepExtService = {
   createProjectFromToken,
   deleteProjectById,
+  getManuscriptProjectById,
 }
 
 export { PrepExtError }
