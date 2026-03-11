@@ -56,8 +56,28 @@ async function deleteManuscriptProject(req, res, next) {
   }
 }
 
+async function syncManuscriptProjectMembers(req, res, next) {
+  try {
+    const token = typeof req.body?.token === 'string' ? req.body.token : null
+    const projectId =
+      typeof req.params?.project_id === 'string' ? req.params.project_id : null
+    const result = await PrepExtService.promises.syncProjectMembersByToken(
+      projectId,
+      token
+    )
+    return res.status(200).json(result)
+  } catch (error) {
+    if (error instanceof PrepExtError) {
+      logger.warn({ err: error }, 'Prep Ext manuscript member sync request rejected')
+      return res.status(error.statusCode).send(error.message)
+    }
+    return next(error)
+  }
+}
+
 export default {
   requirePrepExtApiToken,
   createManuscriptProject: expressify(createManuscriptProject),
   deleteManuscriptProject: expressify(deleteManuscriptProject),
+  syncManuscriptProjectMembers: expressify(syncManuscriptProjectMembers),
 }
