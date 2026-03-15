@@ -1,0 +1,47 @@
+# .github/workflows/deploy_prep_base.yml
+name: DEPLOY_PREP_BASE
+
+on:
+  push:
+    branches: [ "prep-base" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY_BASE: overleaf-base
+
+jobs:
+  deploy-base:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build & push CE base image
+        run: |
+          ECR_REGISTRY="${{ steps.ecr.outputs.registry }}"
+          TS="$(date +%Y%m%d%H%M%S)"
+          IMAGE_TAG="${TS}"
+          BASE_IMAGE_LATEST="${ECR_REGISTRY}/${ECR_REPOSITORY_BASE}:latest"
+          BASE_IMAGE_VERSIONED="${ECR_REGISTRY}/${ECR_REPOSITORY_BASE}:${IMAGE_TAG}"
+
+          docker build \
+            -f server-ce/Dockerfile-base \
+            -t "${BASE_IMAGE_LATEST}" \
+            -t "${BASE_IMAGE_VERSIONED}" \
+            .
+
+          docker push "${BASE_IMAGE_LATEST}"
+          docker push "${BASE_IMAGE_VERSIONED}"
