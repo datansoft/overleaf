@@ -189,12 +189,9 @@ function toLines(contents) {
 }
 
 async function createProjectFromClaims(claims) {
-  const user = await UserGetter.promises.getUserByAnyEmail(claims.email, {
-    _id: 1,
-  })
-
-  if (!user?._id) {
-    throw new PrepExtError('User not found for email', 403)
+  const { user, created } = await findOrCreateUserByEmail(claims.email)
+  if (created) {
+    logger.info({ email: claims.email }, 'Prep Ext auto-created user')
   }
 
   const { title, template, bib } = claims.payload

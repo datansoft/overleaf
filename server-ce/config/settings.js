@@ -80,6 +80,9 @@ const settings = {
       port: process.env.OVERLEAF_REDIS_PORT || '6379',
       password: process.env.OVERLEAF_REDIS_PASS || undefined,
       tls: process.env.OVERLEAF_REDIS_TLS === 'true' ? {} : undefined,
+      db: process.env.OVERLEAF_REDIS_DB
+        ? parseIntOrFail(process.env.OVERLEAF_REDIS_DB)
+        : undefined,
       key_schema: {
         // document-updater
         blockingKey({ doc_id }) {
