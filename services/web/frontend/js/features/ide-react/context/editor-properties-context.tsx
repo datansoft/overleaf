@@ -45,7 +45,7 @@ function showVisualFallbackValue() {
     customLocalStorage.removeItem(editorModeKey)
   }
 
-  return editorModeVal === 'rich-text'
+  return true
 }
 
 export const EditorPropertiesProvider: FC<PropsWithChildren> = ({
