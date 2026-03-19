@@ -153,18 +153,12 @@ export const EditorProvider: FC<React.PropsWithChildren> = ({ children }) => {
   const { setTitle } = useBrowserWindow()
   useEffect(() => {
     const parts = []
-
-    if (role === 'detached') {
-      parts.push('[PDF]')
-    }
+      parts.push("PREP")
 
     if (projectName) {
+      parts.push("-")
       parts.push(projectName)
-      parts.push('-')
     }
-
-    parts.push('Online LaTeX Editor')
-    parts.push(getMeta('ol-ExposedSettings').appName)
 
     const title = parts.join(' ')
 
