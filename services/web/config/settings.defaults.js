@@ -461,9 +461,9 @@ module.exports = {
     checkForHTMLInVars: process.env.I18N_CHECK_FOR_HTML_IN_VARS === 'true',
     escapeHTMLInVars: process.env.I18N_ESCAPE_HTML_IN_VARS === 'true',
     subdomainLang: {
-      www: { lngCode: 'en', url: siteUrl },
+      www: { lngCode: process.env.OVERLEAF_SITE_LANGUAGE || 'en', url: siteUrl },
     },
-    defaultLng: 'en',
+    defaultLng: process.env.OVERLEAF_SITE_LANGUAGE || 'en',
   },
 
   // Spelling languages
