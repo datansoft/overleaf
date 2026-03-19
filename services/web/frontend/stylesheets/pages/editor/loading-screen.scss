@@ -1,8 +1,8 @@
 @use 'sass:math';
 
 @mixin loading-screen-dark {
-  --loading-screen-ol-logo-empty-url: url(../../../../public/img/ol-brand/overleaf-o-grey.svg);
-  --loading-screen-ol-logo-full-url: url(../../../../public/img/ol-brand/overleaf-o-white.svg);
+  --loading-screen-ol-logo-empty-url: url(../../../../public/img/prep/prep-loading-white.svg);
+  --loading-screen-ol-logo-full-url: url(../../../../public/img/prep/prep-loading-key.svg);
   --loading-screen-bg-color: var(--bg-dark-primary);
   --loading-screen-color: var(--content-secondary-dark);
   --loading-screen-danger-color: var(--content-danger-dark);
