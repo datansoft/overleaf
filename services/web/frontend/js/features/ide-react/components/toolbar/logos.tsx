@@ -9,6 +9,9 @@ type ToolbarLogosProps = {
 
 export const ToolbarLogos = ({ cobranding }: ToolbarLogosProps) => {
   const { t } = useTranslation()
+  const homeLinkHref =
+    document.querySelector('meta[name="prep-siteUrl"]')?.getAttribute('content') ??
+    undefined
 
   return (
     <div className="ide-redesign-toolbar-logos">
@@ -18,7 +21,7 @@ export const ToolbarLogos = ({ cobranding }: ToolbarLogosProps) => {
         overlayProps={{ delay: 0, placement: 'bottom' }}
       >
         <div className="ide-redesign-toolbar-home-button">
-          <a href="/project" className="ide-redesign-toolbar-home-link">
+          <a href={homeLinkHref} className="ide-redesign-toolbar-home-link">
             <span className="toolbar-ol-logo" aria-label={t('overleaf_logo')} />
             <MaterialIcon type="home" className="toolbar-ol-home-button" />
           </a>

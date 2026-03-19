@@ -856,6 +856,7 @@ module.exports = {
 
   prepExt: {
     enabled: process.env.PREP_ENABLED === 'true',
+    siteUrl: process.env.PREP_SITE_URL,
     startUrl: process.env.PREP_SSO_URL,
     issuer: process.env.PREP_JWT_ISSUER || 'prep.preppaper.com',
     audience: process.env.PREP_JWT_AUDIENCE || 'latex.preppaper.com',

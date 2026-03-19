@@ -60,4 +60,6 @@ meta(name="ol-translationUnableToJoin" data-type="string" content=translate("cou
 if (settings.overleaf != null)
 	meta(name="ol-overallThemes" data-type="json" content=overallThemes)
 
+meta(name="prep-siteUrl" content=(settings.prepExt && settings.prepExt.siteUrl))
+
 != moduleIncludes("editor:meta", locals)
