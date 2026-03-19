@@ -255,6 +255,7 @@ export const SettingsModalProvider: FC<React.PropsWithChildren> = ({
         title: t('account_settings'),
         icon: 'settings',
         href: '/user/settings',
+        hidden: true,
       },
       {
         key: 'subscription',

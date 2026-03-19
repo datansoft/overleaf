@@ -196,7 +196,7 @@ export default memo(function HotkeysModal({
             </OLRow>
           </>
         )}
-        <HotkeysModalBottomText />
+        {/* <HotkeysModalBottomText /> */}
       </OLModalBody>
 
       <OLModalFooter>

@@ -65,15 +65,15 @@ export const ToolbarMenuBar = () => {
         },
         id: 'word_count',
       },
-      {
-        type: 'command',
-        label: t('make_a_copy'),
-        disabled: anonymous,
-        handler: () => {
-          setShowCloneProjectModal(true)
-        },
-        id: 'copy_project',
-      },
+      // {
+      //   type: 'command',
+      //   label: t('make_a_copy'),
+      //   disabled: anonymous,
+      //   handler: () => {
+      //     setShowCloneProjectModal(true)
+      //   },
+      //   id: 'copy_project',
+      // },
     ],
     [t, setView, view, wordCountEnabled, anonymous]
   )
@@ -128,7 +128,6 @@ export const ToolbarMenuBar = () => {
             children: [
               'insert-figure-from-computer',
               'insert-figure-from-project-files',
-              'insert-figure-from-another-project',
               'insert-figure-from-url',
             ],
           },

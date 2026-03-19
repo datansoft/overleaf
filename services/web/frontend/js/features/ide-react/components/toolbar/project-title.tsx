@@ -77,7 +77,7 @@ export const ToolbarProjectTitle = () => {
         <DownloadProjectPDF />
         <DownloadProjectZip />
         <DropdownDivider />
-        <DuplicateProject />
+        {/* <DuplicateProject /> */}
         <OLDropdownMenuItem
           onClick={() => {
             setIsRenaming(true)

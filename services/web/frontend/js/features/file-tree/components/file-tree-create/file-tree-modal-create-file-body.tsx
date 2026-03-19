@@ -26,8 +26,6 @@ export default function FileTreeModalCreateFileBody() {
   const { newFileCreateMode } = useFileTreeActionable()
   const { fileCount } = useFileTreeData()
   const {
-    hasLinkedProjectFileFeature,
-    hasLinkedProjectOutputFileFeature,
     hasLinkUrlFeature,
   } = getMeta('ol-ExposedSettings')
 
@@ -65,15 +63,6 @@ export default function FileTreeModalCreateFileBody() {
                 icon="upload"
                 label={t('upload')}
               />
-
-              {(hasLinkedProjectFileFeature ||
-                hasLinkedProjectOutputFileFeature) && (
-                <FileTreeModalCreateFileMode
-                  mode="project"
-                  icon="folder_open"
-                  label={t('from_another_project')}
-                />
-              )}
 
               {hasLinkUrlFeature && (
                 <FileTreeModalCreateFileMode

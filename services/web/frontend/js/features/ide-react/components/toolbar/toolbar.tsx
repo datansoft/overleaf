@@ -59,7 +59,7 @@ export const Toolbar = () => {
         {shouldDisplaySubmitButton && cobranding && (
           <SubmitProjectButton cobranding={cobranding} />
         )}
-        <ShareProjectButton />
+        {/* <ShareProjectButton /> */}
         {getMeta('ol-showUpgradePrompt') && <UpgradeButton />}
       </div>
     </nav>
