@@ -57,7 +57,11 @@ export const EditorPropertiesProvider: FC<PropsWithChildren> = ({
     {
       converter: {
         toPersisted: showVisual => (showVisual ? 'visual' : 'code'),
-        fromPersisted: mode => mode === 'visual',
+        fromPersisted: mode => {
+          if (mode === 'visual') return true
+          if (mode === 'code') return false
+          return true // null/unknown fallback
+        },
       },
     }
   )
