@@ -1,0 +1,74 @@
+# .github/workflows/deploy_prep_prd.yml
+name: DEPLOY_PREP_PRD
+
+on:
+  push:
+    branches: [ "prep-main" ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECR_REPOSITORY: overleaf-prd
+  ECR_REPOSITORY_BASE: overleaf-base
+  DEVOPS_REPO: k8s-devops
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set image tags
+        id: meta
+        run: |
+          TS="$(date +%Y%m%d%H%M%S)"
+          IMAGE_TAG="${TS}"
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Build & push App image
+        id: app
+        run: |
+          ECR_REGISTRY="${{ steps.ecr.outputs.registry }}"
+          BASE_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY_BASE}:latest"
+          APP_IMAGE="${ECR_REGISTRY}/${ECR_REPOSITORY}:${{ steps.meta.outputs.image_tag }}"
+
+          # Use Buildx explicitly (BuildKit frontend) for better Dockerfile feature compatibility.
+          # --load imports the built image into the local Docker engine so `docker push` can remain unchanged.
+          docker buildx build \
+            --load \
+            --build-arg OVERLEAF_BASE_TAG="${BASE_IMAGE}" \
+            -f server-ce/Dockerfile \
+            -t "${APP_IMAGE}" \
+            .
+
+          docker push "${APP_IMAGE}"
+
+          echo "image=${APP_IMAGE}" >> "$GITHUB_OUTPUT"
+
+#      - name: Checkout devops repository
+#        run: |
+#          git clone https://x-access-token:${{ secrets.DEVOPS_REPO_TOKEN }}@github.com/datansoft/$DEVOPS_REPO.git
+#
+#      - name: Update and Push rollout.yaml
+#        run: |
+#          cd $DEVOPS_REPO
+#          sed -i "s|image:.*|image: ${{ steps.app.outputs.image }}|g" project/latex/rollout.yaml
+#
+#          git config --global user.name "github-actions[bot]"
+#          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+#          git add project/latex/rollout.yaml
+#          git commit -m "Update latex image to ${{ steps.meta.outputs.image_tag }}"
+#          git push origin main
