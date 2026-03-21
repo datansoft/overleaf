@@ -195,6 +195,33 @@ const rateLimiters = {
   }),
 }
 
+function redirectProject404ToPrepSite(err, req, res, next) {
+  const prepSiteUrl = Settings.prepExt?.siteUrl
+  if (
+    err?.name === 'NotFoundError' ||
+    err?.status === 404 ||
+    err?.statusCode === 404
+  ) {
+    if (!prepSiteUrl) {
+      return next(err)
+    }
+    const message = JSON.stringify('페이지를 찾을 수 없습니다.')
+    const target = JSON.stringify(prepSiteUrl)
+    res.status(404).type('html')
+    return res.send(`<!doctype html>
+<html>
+  <head><meta charset="utf-8" /></head>
+  <body>
+    <script>
+      alert(${message});
+      window.location.href = ${target};
+    </script>
+  </body>
+</html>`)
+  }
+  return next(err)
+}
+
 async function initialize(webRouter, privateApiRouter, publicApiRouter) {
   webRouter.use(unsupportedBrowserMiddleware)
 
@@ -553,7 +580,8 @@ async function initialize(webRouter, privateApiRouter, publicApiRouter) {
       AsyncLocalStorage.middleware,
       PermissionsController.useCapabilities(),
       AuthorizationMiddleware.ensureUserCanReadProject,
-      ProjectController.loadEditor
+      ProjectController.loadEditor,
+      redirectProject404ToPrepSite
     )
   }
   webRouter.head(
