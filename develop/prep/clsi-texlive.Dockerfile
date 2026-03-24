@@ -31,21 +31,29 @@ COPY services/clsi/ /overleaf/services/clsi/
 FROM ${OVERLEAF_BASE_TAG}
 
 ARG TEXLIVE_MIRROR=https://mirror.ox.ac.uk/sites/ctan.org/systems/texlive/tlnet
-
+ARG APT_EXTRA_PACKAGES="\
+    ghostscript \
+    fonts-nanum fonts-noto-cjk \
+    fonts-dejavu fonts-liberation fonts-liberation2 fonts-freefont-ttf \
+"
+ARG TEXLIVE_EXTRA_PACKAGES="\
+    setspace booktabs enumitem caption \
+    cjk-ko xetexko collection-langcjk \
+    biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
+"
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
- && apt-get install -y ghostscript chktex fonts-noto-cjk \
+ && apt-get install -y ${APT_EXTRA_PACKAGES} \
+ && rm -rf /var/lib/apt/lists/* \
  && tlmgr option repository "${TEXLIVE_MIRROR}" \
- && tlmgr install --repository "${TEXLIVE_MIRROR}" \
-      cjk-ko \
-      xetexko \
-      collection-langcjk \
- && mkdir -p /usr/local/share/latexmk
+ && tlmgr install --repository "${TEXLIVE_MIRROR}" ${TEXLIVE_EXTRA_PACKAGES} \
+ && tlmgr path add
 
 WORKDIR /overleaf/services/clsi
 
 COPY --from=app /overleaf /overleaf
+RUN mkdir -p /usr/local/share/latexmk
 COPY server-ce/config/latexmkrc /usr/local/share/latexmk/LatexMk
 
 RUN mkdir -p cache compiles output
