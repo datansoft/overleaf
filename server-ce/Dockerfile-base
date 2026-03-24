@@ -81,11 +81,20 @@ RUN mkdir /install-tl-unx \
 
 # Install additional TeX tooling in an isolated step.
 # Keep this block independent from the base TeX Live bootstrap above.
-ARG TEXLIVE_EXTRA_PACKAGES="cjk-ko xetexko collection-langcjk"
+ARG APT_EXTRA_PACKAGES="\
+    chktex \
+    fonts-nanum fonts-noto-cjk \
+    fonts-dejavu fonts-liberation fonts-liberation2 fonts-freefont-ttf \
+"
+ARG TEXLIVE_EXTRA_PACKAGES="\
+    setspace booktabs enumitem caption \
+    cjk-ko xetexko collection-langcjk \
+    biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
+"
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
- && apt-get install -y chktex fonts-noto-cjk \
+ && apt-get install -y ${APT_EXTRA_PACKAGES} \
  && rm -rf /var/lib/apt/lists/*
 
 RUN set -eux; \
