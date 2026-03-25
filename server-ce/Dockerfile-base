@@ -79,20 +79,6 @@ RUN mkdir /install-tl-unx \
 &&  tlmgr path add \
 &&  rm -rf /install-tl-unx
 
-# Install additional TeX tooling in an isolated step.
-# Keep this block independent from the base TeX Live bootstrap above.
-ARG TEXLIVE_EXTRA_PACKAGES="cjk-ko xetexko collection-langcjk"
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
-    apt-get update \
- && apt-get install -y chktex fonts-noto-cjk \
- && rm -rf /var/lib/apt/lists/*
-
-RUN set -eux; \
-    tlmgr option repository "${TEXLIVE_MIRROR}" || true; \
-    tlmgr install --repository "${TEXLIVE_MIRROR}" ${TEXLIVE_EXTRA_PACKAGES}; \
-    tlmgr path add
-
 
 # Set up overleaf user and home directory
 # -----------------------------------------
