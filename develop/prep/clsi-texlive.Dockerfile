@@ -38,7 +38,7 @@ ARG APT_EXTRA_PACKAGES="\
 "
 ARG TEXLIVE_EXTRA_PACKAGES="\
     collection-latexextra collection-fontsrecommended collection-latexrecommended \
-    algorithms inconsolata \
+    collection-mathscience inconsolata fbb newtx \
     cjk-ko xetexko collection-langcjk \
     biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
 "
