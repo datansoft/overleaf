@@ -38,7 +38,7 @@ ARG APT_EXTRA_PACKAGES="\
 "
 ARG TEXLIVE_EXTRA_PACKAGES="\
     collection-latexextra collection-fontsrecommended collection-latexrecommended \
-    collection-mathscience inconsolata fbb newtx \
+    collection-mathscience inconsolata fbb newtx ly1 sourcesans \
     cjk-ko xetexko collection-langcjk \
     biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
 "
@@ -46,9 +46,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
  && apt-get install -y ${APT_EXTRA_PACKAGES} \
- #&& rm -rf /var/lib/apt/lists/* \
  && tlmgr option repository "${TEXLIVE_MIRROR}" \
  && tlmgr install --repository "${TEXLIVE_MIRROR}" ${TEXLIVE_EXTRA_PACKAGES} \
+ && tlmgr path add
+
+ARG TEXLIVE_TEST_PACKAGES=""
+RUN tlmgr option repository "${TEXLIVE_MIRROR}" \
+ && if [ -n "${TEXLIVE_TEST_PACKAGES}" ]; then \
+      tlmgr install --repository "${TEXLIVE_MIRROR}" ${TEXLIVE_TEST_PACKAGES}; \
+    fi \
  && tlmgr path add
 
 WORKDIR /overleaf/services/clsi
