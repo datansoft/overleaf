@@ -40,7 +40,7 @@ ARG TEXLIVE_EXTRA_PACKAGES="\
     collection-latexextra collection-fontsrecommended collection-latexrecommended \
     collection-mathscience inconsolata fbb newtx ly1 sourcesans \
     cjk-ko xetexko collection-langcjk \
-    biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
+    biblatex biber biblatex-apa biblatex-mla biblatex-ieee biblatex-chicago acmart \
 "
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
