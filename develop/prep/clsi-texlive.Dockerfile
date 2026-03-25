@@ -37,7 +37,7 @@ ARG APT_EXTRA_PACKAGES="\
     fonts-dejavu fonts-liberation fonts-liberation2 fonts-freefont-ttf \
 "
 ARG TEXLIVE_EXTRA_PACKAGES="\
-    setspace booktabs enumitem caption \
+    collection-latexextra collection-fontsrecommended collection-latexrecommended \
     cjk-ko xetexko collection-langcjk \
     biblatex biber biblatex-apa biblatex-mla biblatex-ieee acmart \
 "
@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt/lists,sharing=locked \
     apt-get update \
  && apt-get install -y ${APT_EXTRA_PACKAGES} \
- && rm -rf /var/lib/apt/lists/* \
+ #&& rm -rf /var/lib/apt/lists/* \
  && tlmgr option repository "${TEXLIVE_MIRROR}" \
  && tlmgr install --repository "${TEXLIVE_MIRROR}" ${TEXLIVE_EXTRA_PACKAGES} \
  && tlmgr path add
