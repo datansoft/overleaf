@@ -1,12 +1,13 @@
 import Settings from '@overleaf/settings'
 import logger from '@overleaf/logger'
+import Path from 'node:path'
+import fs from 'node:fs/promises'
 import { jwtVerify, importSPKI } from 'jose'
 import RedisWrapper from '../../../../app/src/infrastructure/RedisWrapper.mjs'
 import EmailHelper from '../../../../app/src/Features/Helpers/EmailHelper.mjs'
 import UserGetter from '../../../../app/src/Features/User/UserGetter.mjs'
 import UserCreator from '../../../../app/src/Features/User/UserCreator.mjs'
 import ProjectCreationHandler from '../../../../app/src/Features/Project/ProjectCreationHandler.mjs'
-import ProjectEntityUpdateHandler from '../../../../app/src/Features/Project/ProjectEntityUpdateHandler.mjs'
 import ProjectDeleter from '../../../../app/src/Features/Project/ProjectDeleter.mjs'
 import ProjectGetter from '../../../../app/src/Features/Project/ProjectGetter.mjs'
 import ProjectEntityHandler from '../../../../app/src/Features/Project/ProjectEntityHandler.mjs'
@@ -19,12 +20,15 @@ import CollaboratorsInviteGetter from '../../../../app/src/Features/Collaborator
 import CollaboratorsInviteHandler from '../../../../app/src/Features/Collaborators/CollaboratorsInviteHandler.mjs'
 import OwnershipTransferHandler from '../../../../app/src/Features/Collaborators/OwnershipTransferHandler.mjs'
 import EditorRealTimeController from '../../../../app/src/Features/Editor/EditorRealTimeController.mjs'
+import EditorController from '../../../../app/src/Features/Editor/EditorController.mjs'
 import Errors from '../../../../app/src/Features/Errors/Errors.js'
+import FileTypeManager from '../../../../app/src/Features/Uploads/FileTypeManager.mjs'
 import { promiseMapWithLimit } from '@overleaf/promise-utils'
 import { ObjectId } from 'mongodb'
 
 const replayClient = RedisWrapper.client('web')
 const PREP_MEMBER_ROLES = new Set(['OWNER', 'EDITOR', 'VIEWER'])
+const PREP_EXT_SOURCE = 'prep-ext'
 
 class PrepExtError extends Error {
   constructor(message, statusCode = 403) {
@@ -67,21 +71,15 @@ function normalizeCreateProjectClaims(payload) {
     throw new PrepExtError('Missing payload claim', 400)
   }
 
-  const { title, template, bib } = manuscriptPayload
-  if (
-    typeof title !== 'string' ||
-    typeof template !== 'string' ||
-    typeof bib !== 'string'
-  ) {
-    throw new PrepExtError('payload.title, payload.template, payload.bib are required', 400)
+  const { title } = manuscriptPayload
+  if (typeof title !== 'string') {
+    throw new PrepExtError('payload.title is required', 400)
   }
 
   return {
     email,
     payload: {
       title,
-      template,
-      bib,
     },
     jti: typeof payload.jti === 'string' ? payload.jti : null,
     exp: typeof payload.exp === 'number' ? payload.exp : null,
@@ -184,45 +182,19 @@ async function markTokenAsUsed(claims) {
   }
 }
 
-function toLines(contents) {
-  return contents.split('\n')
-}
-
 async function createProjectFromClaims(claims) {
   const { user, created } = await findOrCreateUserByEmail(claims.email)
   if (created) {
     logger.info({ email: claims.email }, 'Prep Ext auto-created user')
   }
 
-  const { title, template, bib } = claims.payload
+  const { title } = claims.payload
 
   try {
     const project = await ProjectCreationHandler.promises.createBlankProject(
       user._id,
       title
     )
-    const rootFolderId = project.rootFolder[0]._id
-
-    const { doc: mainDoc } = await ProjectEntityUpdateHandler.promises.addDoc(
-      project._id,
-      rootFolderId,
-      'main.tex',
-      toLines(template),
-      user._id,
-      'prep-ext'
-    )
-
-    await ProjectEntityUpdateHandler.promises.setRootDoc(project._id, mainDoc._id)
-
-    await ProjectEntityUpdateHandler.promises.addDoc(
-      project._id,
-      rootFolderId,
-      'main.bib',
-      toLines(bib),
-      user._id,
-      'prep-ext'
-    )
-
     return project._id
   } catch (error) {
     if (
@@ -233,6 +205,195 @@ async function createProjectFromClaims(claims) {
     }
     throw error
   }
+}
+
+async function createProjectFileByProjectId(projectId, { name, fsPath, isRoot }) {
+  projectId = getValidProjectId(projectId)
+
+  if (!fsPath || typeof fsPath !== 'string') {
+    throw new PrepExtError('file is required', 400)
+  }
+
+  const { folderPath, entityName } = _splitEntityName(name)
+
+  let project
+  try {
+    project = await ProjectGetter.promises.getProject(projectId, {
+      owner_ref: 1,
+      rootFolder: 1,
+    })
+  } catch (error) {
+    if (
+      error instanceof Errors.NotFoundError ||
+      error instanceof Errors.ProjectNotFoundError
+    ) {
+      throw new PrepExtError('project not found', 404)
+    }
+    throw error
+  }
+
+  if (!project) {
+    throw new PrepExtError('project not found', 404)
+  }
+  if (!project.owner_ref) {
+    throw new PrepExtError('project owner not found', 500)
+  }
+
+  let folderId = project.rootFolder?.[0]?._id
+  if (folderPath) {
+    try {
+      const { lastFolder } = await EditorController.promises.mkdirp(
+        projectId,
+        folderPath,
+        project.owner_ref
+      )
+      folderId = lastFolder._id
+    } catch (error) {
+      if (error instanceof Errors.InvalidNameError) {
+        throw new PrepExtError(error.message, 400)
+      }
+      throw error
+    }
+  }
+
+  try {
+    const { isText, encoding } = await _shouldCreateTextProjectFile(
+      entityName,
+      fsPath
+    )
+
+    if (isText) {
+      return await _createTextProjectFile(
+        projectId,
+        folderId,
+        entityName,
+        fsPath,
+        encoding,
+        isRoot,
+        project.owner_ref
+      )
+    }
+
+    return await _createBinaryProjectFile(
+      projectId,
+      folderId,
+      entityName,
+      fsPath,
+      project.owner_ref
+    )
+  } catch (error) {
+    if (
+      error instanceof Errors.InvalidNameError ||
+      error instanceof Errors.InvalidError ||
+      error instanceof Errors.DuplicateNameError ||
+      error instanceof Errors.UnsupportedFileTypeError
+    ) {
+      throw new PrepExtError(error.message, 400)
+    }
+    if (
+      error instanceof Errors.NotFoundError ||
+      error instanceof Errors.ProjectNotFoundError
+    ) {
+      throw new PrepExtError('project not found', 404)
+    }
+    if (error?.message === 'project_has_too_many_files') {
+      throw new PrepExtError(error.message, 422)
+    }
+    throw error
+  }
+}
+
+function _splitEntityName(name) {
+  if (!name || typeof name !== 'string') {
+    throw new PrepExtError('name is required', 400)
+  }
+
+  const trimmedName = name.trim()
+  if (!trimmedName) {
+    throw new PrepExtError('name is required', 400)
+  }
+  if (trimmedName.startsWith('/') || trimmedName.endsWith('/')) {
+    throw new PrepExtError('Invalid name', 400)
+  }
+
+  const normalizedPath = Path.posix.normalize(trimmedName)
+  if (
+    normalizedPath === '.' ||
+    normalizedPath === '..' ||
+    normalizedPath.startsWith('../') ||
+    normalizedPath.includes('/../')
+  ) {
+    throw new PrepExtError('Invalid name', 400)
+  }
+
+  const segments = normalizedPath.split('/').filter(Boolean)
+  if (segments.length === 0) {
+    throw new PrepExtError('name is required', 400)
+  }
+
+  const entityName = segments.pop()
+  if (!entityName) {
+    throw new PrepExtError('Invalid name', 400)
+  }
+
+  return {
+    folderPath: segments.join('/'),
+    entityName,
+  }
+}
+
+function _isTexDoc(name) {
+  return Path.extname(name).toLowerCase() === '.tex'
+}
+
+async function _shouldCreateTextProjectFile(entityName, fsPath) {
+  const fileType = await FileTypeManager.promises.getType(entityName, fsPath, null)
+  return {
+    isText: !fileType.binary,
+    encoding: fileType.encoding,
+  }
+}
+
+async function _createTextProjectFile(
+  projectId,
+  folderId,
+  entityName,
+  fsPath,
+  encoding,
+  isRoot,
+  userId
+) {
+  const fileContents = await fs.readFile(fsPath, encoding ?? 'utf8')
+  const doc = await EditorController.promises.addDoc(
+    projectId,
+    folderId,
+    entityName,
+    fileContents.split('\n'),
+    PREP_EXT_SOURCE,
+    userId
+  )
+
+  if (isRoot && _isTexDoc(entityName)) {
+    await EditorController.promises.setRootDoc(projectId, doc._id)
+  }
+}
+
+async function _createBinaryProjectFile(
+  projectId,
+  folderId,
+  entityName,
+  fsPath,
+  userId
+) {
+  await EditorController.promises.addFile(
+    projectId,
+    folderId,
+    entityName,
+    fsPath,
+    null,
+    PREP_EXT_SOURCE,
+    userId
+  )
 }
 
 async function createProjectFromToken(token) {
@@ -516,6 +677,7 @@ async function getManuscriptProjectById(projectId) {
 
 const PrepExtService = {
   createProjectFromToken,
+  createProjectFileByProjectId,
   deleteProjectById,
   getManuscriptProjectById,
   syncProjectMembersByToken,

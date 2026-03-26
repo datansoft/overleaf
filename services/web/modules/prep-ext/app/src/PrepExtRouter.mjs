@@ -8,6 +8,12 @@ function addPrepManuscriptRoutes(router) {
     PrepExtController.requirePrepExtApiToken,
     PrepExtController.createManuscriptProject
   )
+  router.post(
+    '/prep/manuscript/:project_id/file',
+    PrepExtController.requirePrepExtApiToken,
+    PrepExtController.createManuscriptFileMiddleware,
+    PrepExtController.createManuscriptFile
+  )
   router.delete(
     '/prep/manuscript/:project_id',
     PrepExtController.requirePrepExtApiToken,

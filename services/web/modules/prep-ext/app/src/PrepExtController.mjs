@@ -1,8 +1,17 @@
 import logger from '@overleaf/logger'
 import Settings from '@overleaf/settings'
 import crypto from 'node:crypto'
+import fs from 'node:fs'
 import { expressify } from '@overleaf/promise-utils'
+import multer from 'multer'
 import PrepExtService, { PrepExtError } from './PrepExtService.mjs'
+
+const prepUpload = multer({
+  dest: Settings.path.uploadFolder,
+  limits: {
+    fileSize: Settings.maxUploadSize,
+  },
+})
 
 function secureEquals(left, right) {
   const leftBuffer = Buffer.from(left, 'utf8')
@@ -38,6 +47,55 @@ async function createManuscriptProject(req, res, next) {
       return res.status(error.statusCode).send(error.message)
     }
     return next(error)
+  }
+}
+
+function createManuscriptFileMiddleware(req, res, next) {
+  return prepUpload.single('file')(req, res, err => {
+    if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(422).send('file too large')
+    }
+    if (err) {
+      return next(err)
+    }
+    if (!req.file?.path) {
+      return res.status(400).send('file is required')
+    }
+    return next()
+  })
+}
+
+async function createManuscriptFile(req, res, next) {
+  const uploadPath = req.file?.path
+  try {
+    const projectId =
+      typeof req.params?.project_id === 'string' ? req.params.project_id : null
+    const name = typeof req.body?.name === 'string' ? req.body.name : null
+    const isRoot =
+      req.body?.is_root === true ||
+      req.body?.is_root === 'true' ||
+      req.body?.is_root === 1 ||
+      req.body?.is_root === '1'
+
+    await PrepExtService.promises.createProjectFileByProjectId(
+      projectId,
+      {
+        name,
+        fsPath: uploadPath,
+        isRoot,
+      }
+    )
+    return res.sendStatus(201)
+  } catch (error) {
+    if (error instanceof PrepExtError) {
+      logger.warn({ err: error }, 'Prep Ext manuscript file request rejected')
+      return res.status(error.statusCode).send(error.message)
+    }
+    return next(error)
+  } finally {
+    if (uploadPath) {
+      fs.unlink(uploadPath, () => {})
+    }
   }
 }
 
@@ -77,7 +135,9 @@ async function syncManuscriptProjectMembers(req, res, next) {
 
 export default {
   requirePrepExtApiToken,
+  createManuscriptFileMiddleware,
   createManuscriptProject: expressify(createManuscriptProject),
+  createManuscriptFile: expressify(createManuscriptFile),
   deleteManuscriptProject: expressify(deleteManuscriptProject),
   syncManuscriptProjectMembers: expressify(syncManuscriptProjectMembers),
 }
